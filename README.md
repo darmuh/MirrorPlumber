@@ -6,7 +6,7 @@
 
 ## Mirror Network Prefabs 
  *Note: These steps assume you have some prior Unity modding knowledge.*  
- *If you do not need a background on Mirror Networking and just wnat to know how to use this utility, skip to ``Using MirrorPlumber for your NetworkBehaviour``*
+ *If you do not need a background on Mirror Networking and just want to know how to use this utility, skip to ``Using MirrorPlumber for your NetworkBehaviour``*
 
 ### Create a GameObject that will serve as your Network Prefab containg your NetworkBehaviour  
  - This game object should at the minimum contain a ``Networkidentity`` component.  
@@ -79,7 +79,7 @@
  - Without MirrorPlumber, this is where you would find that the various Attributes ``[ClientRpc]``, ``[Command]``, etc. are not actually utilizing Mirror to send the information across the network.  
  - You *could* perform your own plumbing and register each and every NetworkAction yourself following the logic for ``RemoteProcedureCalls.RegisterDelegate`` or ``RemoteProcedureCalls.RegisterRpc`` or `RemoteProcedureCalls.RegisterCommand`  
     - However this process is incredibly tedious and will certainly cause you some headaches.  
- - MirrorPlumber does all of this manual plumbing for you. You'll just need to perform a few alternative steps in your NetworkBehaviour to start the process.  
+ - MirrorPlumber does all of this manual plumbing for you. You'll just need to perform a few steps in your NetworkBehaviour to start the process.  
  
  ## Using MirrorPlumber for your NetworkBehaviour
  - To start, it is recommended to create a static reference to each Plumber you create.

@@ -152,7 +152,7 @@ public class Plumber : PlumberBase
     {
         if (!NetworkClient.active)
         {
-            Plugin.Log.LogError("NetworkingTestWithPlumbing - RPC RpcShowHelloMessage called on server.");
+            Plugin.Log.LogError($"{_fullName} called on inactive client.");
         }
         else
         {
@@ -164,7 +164,7 @@ public class Plumber : PlumberBase
     {
         if (!NetworkServer.active)
         {
-            Plugin.Log.LogError("NetworkServer is not active, no clients to send this to");
+            Plugin.Log.LogError($"Attempted to call {_fullName} when NetworkServer is not active.");
         }
         else
         {
@@ -228,7 +228,7 @@ public class Plumber<TParam> : PlumberBase
     {
         if (!NetworkClient.active)
         {
-            Plugin.Log.LogError("NetworkingTestWithPlumbing - RPC RpcShowHelloMessage called on server.");
+            Plugin.Log.LogError($"{_fullName} called on inactive client.");
         }
         else
         {
@@ -240,7 +240,7 @@ public class Plumber<TParam> : PlumberBase
     {
         if (!NetworkServer.active)
         {
-            Plugin.Log.LogError("NetworkServer is not active, no clients to send this to");
+            Plugin.Log.LogError($"Attempted to call {_fullName} when NetworkServer is not active.");
         }
         else
         {
@@ -307,7 +307,7 @@ public class Plumber<TParam1, TParam2> : PlumberBase
     {
         if (!NetworkClient.active)
         {
-            Plugin.Log.LogError("NetworkingTestWithPlumbing - RPC RpcShowHelloMessage called on server.");
+            Plugin.Log.LogError($"{_fullName} called on inactive client.");
         }
         else
         {
@@ -319,7 +319,7 @@ public class Plumber<TParam1, TParam2> : PlumberBase
     {
         if (!NetworkServer.active)
         {
-            Plugin.Log.LogError("NetworkServer is not active, no clients to send this to");
+            Plugin.Log.LogError($"Attempted to call {_fullName} when NetworkServer is not active.");
         }
         else
         {
