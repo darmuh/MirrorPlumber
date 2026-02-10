@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Mirror;
 using Mirror.RemoteCalls;
 
@@ -16,13 +17,16 @@ public delegate void NetworkEvent<T1, T2>(T1 param1, T2 param2);
 /// </remarks>
 public abstract class PlumberBase
 {
-    internal Type type;
-    internal readonly string _fullName;
-    internal readonly ushort _hash;
-    internal readonly bool _requiresAuth = false;
-    internal bool _includeOwner = false;
-    internal RemoteCallType _callType;
-    internal readonly NetType _netType;
+    internal Type? type;
+    internal string? _fullName { get; private set; }
+    internal ushort _hash { get; private set; }
+    internal bool _requiresAuth { get; private set; } = false;
+    internal bool _includeOwner { get; private set; } = false;
+    internal RemoteCallType _callType { get; private set; }
+    internal NetType _netType { get; private set; }
+
+    //ensure we only ever register this once!
+    internal bool IsRegistered = false;
 
     /// <summary>This determines the type of Mirror Remote Action you are requesting plumbing for.</summary>
     /// <remarks>
@@ -35,19 +39,35 @@ public abstract class PlumberBase
         TargetRpc
     }
 
-    //Base constructor for classes that inherit this one to assign all of the necessary values
-    internal PlumberBase(Type netBehaviour, string methodName, NetType netType, bool requiresAuthority = false)
+    /// <summary>
+    /// This method method will immediately Create & Register your Plumber with Mirror. It's recommended to do this at your NetworkBehaviour's Awake method.
+    /// </summary>
+    /// <param name="netBehaviour">The System.Type converison of your NetworkBehaviour. ie. typeof(MyNetworkBehaviour)</param>
+    /// <param name="methodName">This is the name of the method you wish to perform plumbing for. ie. nameof(MyNetworkedMethod)</param>
+    /// <param name="netType">This is the type of Mirror Network Action you wish to perform plumbing for.</param>
+    /// <param name="requiresAuthority">If enabled, only the host client can invoke this network action</param>
+    /// <remarks>
+    /// This method can be run as much as you want, however only the first time will it actually perform any actions with Mirror.
+    /// </remarks>
+    public void Create(Type netBehaviour, string methodName, NetType netType, bool requiresAuthority = false)
     {
+        if (IsRegistered)
+            return;
+
         type = netBehaviour;
         _fullName = GetFullName(methodName);
         _hash = GetHash(_fullName);
         _requiresAuth = requiresAuthority;
         _netType = netType;
+
+        Register();
     }
 
     //This method should be called on the constructor method for classes that inherit this one
     internal void Register()
     {
+        Plugin.Log.LogDebug($"Registering {_fullName} with mirror");
+
         if (_netType == NetType.Command)
             _callType = RemoteCallType.Command;
         else
@@ -55,10 +75,10 @@ public abstract class PlumberBase
 
         if (_netType == NetType.Command)
             RemoteProcedureCalls.RegisterDelegate(type, _fullName, _callType, StandardCommand, _requiresAuth);
-        else if (_netType == NetType.ClientRpc)
+        else
             RemoteProcedureCalls.RegisterDelegate(type, _fullName, _callType, StandardRPC, _requiresAuth);
-        else if (_netType == NetType.TargetRpc)
-            RemoteProcedureCalls.RegisterDelegate(type, _fullName, _callType, StandardRPC, _requiresAuth);
+
+        IsRegistered = true;
     }
 
     internal abstract void StandardCommand(NetworkBehaviour obj, NetworkReader reader, NetworkConnectionToClient senderConnection);
@@ -67,6 +87,12 @@ public abstract class PlumberBase
     // Utility method for packing and sending the remote action based on what type of action it is 
     internal void SendToMirror<T>(T instance, NetworkWriterPooled writer, NetworkConnection target = null!) where T : NetworkBehaviour
     {
+        if(instance == null)
+        {
+            Plugin.Log.LogError($"{(typeof(T))} instance is Null!");
+            return;
+        }
+
         if (_netType == NetType.Command)
             instance.SendCommandInternal(_fullName, _hash, writer, 0, _requiresAuth);
         else if (_netType == NetType.ClientRpc)
@@ -85,7 +111,7 @@ public abstract class PlumberBase
     // Used as part of registering the network action with mirror, this emulates Mirror's standard registration
     private string GetFullName(string methodName)
     {
-        return $"{type.GetMethod(methodName).ReturnType} {type.Namespace}::{methodName}";
+        return $"{type?.GetMethod(methodName).ReturnType} {type?.Namespace}::{methodName}";
     }
 
     // Used as part of registering the network action with mirror, this emulates Mirror's standard registration
@@ -114,26 +140,20 @@ public abstract class PlumberBase
 /// </remarks>
 public class Plumber : PlumberBase
 {
-    /// <summary>
-    /// This constructor method will immediately register your Plumber with Mirror. It's recommended to do this at your NetworkBehaviour's Awake method.
-    /// </summary>
-    /// <param name="netBehaviour">The System.Type converison of your NetworkBehaviour. ie. typeof(MyNetworkBehaviour)</param>
-    /// <param name="methodName">This is the name of the method you wish to perform plumbing for. ie. nameof(MyNetworkedMethod)</param>
-    /// <param name="netType">This is the type of Mirror Network Action you wish to perform plumbing for.</param>
-    /// <param name="requiresAuthority">If enabled, only the host client can invoke this network action</param>
-    public Plumber(Type netBehaviour, string methodName, NetType netType, bool requiresAuthority = false) : base(netBehaviour, methodName, netType, requiresAuthority)
-    {
-        Register();
-    }
-
     private event NetworkEvent NetworkedEvent = null!;
 
     /// <summary>
     /// Add a method as a listener to this Network Action.
     /// </summary>
     /// <param name="listener">The method you wish to run when your Network Action is called</param>
+    /// <remarks>
+    /// There is handling here not to add the same listener more than once.
+    /// </remarks>
     public void AddListener(NetworkEvent listener)
     {
+        if (NetworkedEvent.GetInvocationList().Contains(listener))
+            return;
+
         NetworkedEvent += listener;
     }
 
@@ -184,18 +204,6 @@ public class Plumber : PlumberBase
 /// </remarks>
 public class Plumber<TParam> : PlumberBase
 {
-    /// <summary>
-    /// This constructor method will immediately register your Plumber with Mirror. It's recommended to do this at your NetworkBehaviour's Awake method.
-    /// </summary>
-    /// <param name="netBehaviour">The System.Type converison of your NetworkBehaviour. ie. typeof(MyNetworkBehaviour)</param>
-    /// <param name="methodName">This is the name of the method you wish to perform plumbing for. ie. nameof(MyNetworkedMethod)</param>
-    /// <param name="netType">This is the type of Mirror Network Action you wish to perform plumbing for.</param>
-    /// <param name="requiresAuthority">If enabled, only the host client can invoke this network action</param>
-    public Plumber(Type netBehaviour, string methodName, NetType netType, bool requiresAuthority = false) : base(netBehaviour, methodName, netType, requiresAuthority)
-    {
-        Register();
-    }
-
     private event NetworkEvent<TParam> NetworkedEvent = null!;
 
     /// <summary>
@@ -214,9 +222,18 @@ public class Plumber<TParam> : PlumberBase
     /// <param name="instance">The instance of your NetworkBehaviour Type that is calling this method</param>
     /// <param name="param">The value of type TParam you are sending over the network</param>
     /// <param name="target">If this NetworkAction is a TargetRpc, specify the target of the Rpc here</param>
+    /// <remarks>
+    /// param can NOT be a null value!
+    /// </remarks>
     public void Invoke<TSource>(TSource instance, TParam param, NetworkConnection target = null!) where TSource : NetworkBehaviour
     {
         NetworkWriterPooled writer = NetworkWriterPool.Get();
+
+        if(param == null)
+        {
+            Plugin.Log.LogError("Given Parameter is null! Mirror cannot read/write NULL values!");
+            return;
+        }
 
         //give mirror writer the param
         writer.Write(param);
@@ -261,18 +278,6 @@ public class Plumber<TParam> : PlumberBase
 /// </remarks>
 public class Plumber<TParam1, TParam2> : PlumberBase
 {
-    /// <summary>
-    /// This constructor method will immediately register your Plumber with Mirror. It's recommended to do this at your NetworkBehaviour's Awake method.
-    /// </summary>
-    /// <param name="netBehaviour">The System.Type converison of your NetworkBehaviour. ie. typeof(MyNetworkBehaviour)</param>
-    /// <param name="methodName">This is the name of the method you wish to perform plumbing for. ie. nameof(MyNetworkedMethod)</param>
-    /// <param name="netType">This is the type of Mirror Network Action you wish to perform plumbing for.</param>
-    /// <param name="requiresAuthority">If enabled, only the host client can invoke this network action</param>
-    public Plumber(Type netBehaviour, string methodName, NetType netType, bool requiresAuthority = false) : base(netBehaviour, methodName, netType, requiresAuthority)
-    {
-        Register();
-    }
-
     private event NetworkEvent<TParam1, TParam2> NetworkedEvent = null!;
 
     /// <summary>
@@ -292,9 +297,24 @@ public class Plumber<TParam1, TParam2> : PlumberBase
     /// <param name="param1">The value of type TParam1 you are sending over the network</param>
     /// <param name="param2">The value of type TParam2 you are sending over the network</param>
     /// <param name="target">If this NetworkAction is a TargetRpc, specify the target of the Rpc here</param>
+    /// <remarks>
+    /// param1 amd param2 can NOT be null!
+    /// </remarks>
     public void Invoke<TSource>(TSource instance, TParam1 param1, TParam2 param2, NetworkConnection target = null!) where TSource : NetworkBehaviour
     {
         NetworkWriterPooled writer = NetworkWriterPool.Get();
+
+        if (param1 == null)
+        {
+            Plugin.Log.LogError("Parameter 1 is null! Mirror cannot read/write NULL values!");
+            return;
+        }
+
+        if (param2 == null)
+        {
+            Plugin.Log.LogError("Parameter 2 is null! Mirror cannot read/write NULL values!");
+            return;
+        }
 
         //give mirror writer the params
         writer.Write(param1);
