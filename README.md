@@ -26,7 +26,7 @@ This was built for YAPYAP, however, it should work in any other unity game that 
  ### Examples:  
  - Network Behaviour using MirrorPlumber - [ExampleNetBehaviour.cs](https://github.com/darmuh/MirrorPlumber/blob/master/Examples/ExampleNetBehaviour.cs)  
  - Loading a Network Prefab with MirrorPlumber - [ExampleCustomNetworkPrefab.cs](https://github.com/darmuh/MirrorPlumber/blob/master/Examples/ExampleCustomNetworkPrefab.cs)  
- - Example Mod using MirrorPlumber - TBD  
+ - Example Mod using MirrorPlumber - [SkeletonCostume](https://thunderstore.io/c/yapyap/p/darmuh/SkeletonCostume/)
 
  ### Documentation:  
   - Documentation is WIP, for now you can view the [old readme](https://github.com/darmuh/MirrorPlumber/blob/master/Wiki/Old-README.md) which had a lot of good but poorly organized information.  
