@@ -4,11 +4,21 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>com.github.darmuh.MirrorPlumber</AssemblyName>
     <AssemblyTitle>MirrorPlumber</AssemblyTitle>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Examples\ExampleCustomNetworkPrefab.cs" />
+    <Compile Remove="Examples\ExampleNetBehaviour.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Wiki\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Examples\ExampleCustomNetworkPrefab.cs" />
+    <None Include="Examples\ExampleNetBehaviour.cs" />
   </ItemGroup>
 
 </Project>

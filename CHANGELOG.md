@@ -1,5 +1,8 @@
 # MirrorPlumber Changelog
 
+## 0.2.1
+ - removed sample classes from compiler that I accidentally included in last build
+
 ## 0.2.0
  - Moved Plumber registration from constructor to ``Create`` method (breaking change from 0.1.1)
 	- This was to solve an issue where Commands/Rpcs were trying to be re-added to Mirror after a lobby reload.

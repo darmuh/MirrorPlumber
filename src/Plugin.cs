@@ -15,7 +15,7 @@ public partial class Plugin : BaseUnityPlugin
         Log = Logger;
         Harmony harmony = new("com.github.darmuh.MirrorPlumber");
         harmony.PatchAll();
-        Log.LogInfo($"Plugin {Name} is loaded!");
+        Log.LogInfo($"Plugin {Name} is loaded and ready to go!");
     }
 
     [HarmonyPatch(typeof(NetworkManager), nameof(NetworkManager.Awake))]
