@@ -1,6 +1,7 @@
 ﻿using Mirror;
+using MirrorPlumber;
 
-namespace MirrorPlumber;
+namespace MyMod;
 
 public class ExampleNetBehaviour : NetworkBehaviour
 {
@@ -12,45 +13,39 @@ public class ExampleNetBehaviour : NetworkBehaviour
     private void Awake()
     {
         GeneratedCommand.Create(typeof(ExampleNetBehaviour), nameof(CmdSendHello), PlumberBase.NetType.Command);
-        GeneratedCommand.AddListener(RpcShowHelloMessage);
+        GeneratedCommand.AddListener(TargetRpcMessage);
 
-        GeneratedRPC.Create(typeof(ExampleNetBehaviour), nameof(RpcShowHelloMessage), PlumberBase.NetType.TargetRpc);
+        GeneratedRPC.Create(typeof(ExampleNetBehaviour), nameof(TargetRpcMessage), PlumberBase.NetType.TargetRpc);
         GeneratedRPC.AddListener(HelloFromTheNetwork);
-
     }
 
     private void Start()
     {
-        SendHelloWorld();
         TestInt = UnityEngine.Random.Range(0, 1337);
-    }
-
-    // Call this from any client to send message to all clients
-    public void SendHelloWorld()
-    {
-        Plugin.Log.LogMessage("Hello world WITH plumbing");
         CmdSendHello();
     }
 
-    [Command(requiresAuthority = false)]
+    //[Command(requiresAuthority = false)] //These attributes are not necessary since they're just cosmetic without Mirror's Weaver doing anything
+    //Realistically, all of this could be in Start but you still need a valid method name to provide mirror
     public void CmdSendHello()
     {
-        // This runs on the server
+        // This runs on the client calling it
         Plugin.Log.LogMessage($"{this} - CmdSendHello");
 
-        // Server tells all clients to show the message
+        // Client invokes GeneratatedCommand, which calls TargetRpcMessage
         GeneratedCommand?.Invoke(this);
     }
 
-    [ClientRpc]
-    public void RpcShowHelloMessage()
+    public void TargetRpcMessage()
     {
-        // This runs on ALL clients
-        Plugin.Log.LogMessage($"{this} - RpcShowHelloMessage");
+        // This runs on the server
+        Plugin.Log.LogMessage($"{this} - TargetRpcMessage");
 
+        // Server invokes TargetRpc which targets the first connection client, running HelloFromTheNetwork 
         GeneratedRPC?.Invoke(this, "Hello World from the network!", TestInt, NetworkServer.connections[0]);
     }
 
+    //This is the method that runs on the target client of the above TargetRpc
     public void HelloFromTheNetwork(string message, int value)
     {
         Plugin.Log.LogMessage($"{this} - {message} / {value}");

@@ -25,7 +25,7 @@
 	- Ensure you are ONLY spawning the object from the server client.  
  - To spawn a NetworkPrefab you will Instantiate a copy of your cached GameObject and then run ``NetworkServer.Spawn`` on the copy with your cached assetId.  
 
-### YAPYAP Simple NetworkPrefab Load/Spawn Example
+### YAPYAP Simple NetworkPrefab Load/Spawn Example (Without MirrorPlumber)
 
 ```
         internal static ManualLogSource Log { get; private set; } = null!;
@@ -84,14 +84,9 @@
  ## Using MirrorPlumber for your NetworkBehaviour
  - To start, it is recommended to create a static reference to each Plumber you create.
     - This is because you will be the one to invoke these network actions in your code, so you'll need a reference to it.
-    - Example: 
- ```
-    internal static Plumber GeneratedCommand = null!;
-    internal static Plumber<string, int> GeneratedRPC = null!;
- ```
 
  - Creating the Plumbers is recommended to be done in your NetworkBehaviour's Awake method, however it can be done any time after the prefab holding your NetworkBehaviour has been spawned.  
-    - You create the Plumber with a simple constructor that takes the following parameters:
+    - You create the Plumber with a simple method called ``Create`` that takes the following parameters:
         - ``System.Type netBehaviour`` You'll provide this by converting your NetworkBehaviour to a System.Type - ie: ``typeof(MyNetworkBehaviour)``
         - ``string methodName`` This is the name of the Method you are performing plumbing for - ie: ``nameof(MyNetworkedMethod)``
         - ``NetType netType`` This is an enum created by MirrorPlumber to help identify what kind of NetworkAction you are requesting plumbing for.
@@ -99,17 +94,7 @@
     - NOTE: You cannot invoke Network Actions without having created your Plumber.
     - Once you have created your Plumber, you should then add the method you wish to run when the NetworkAction is received via ``AddListener``. 
       - This can be multiple methods so long as each one has the number of parameters expected with the correct type.
-- Example: 
- ``` 
-    private void Awake()
-    {
-        GeneratedCommand = new(typeof(NetworkingTestWithPlumbing), nameof(CmdSendHello), PlumberBase.NetType.Command);
-        GeneratedCommand.AddListener(RpcShowHelloMessage);
 
-        GeneratedRPC = new(typeof(NetworkingTestWithPlumbing), nameof(RpcShowHelloMessage), PlumberBase.NetType.TargetRpc);
-        GeneratedRPC.AddListener(HelloFromTheNetwork);
-    }
- ```
  - Now that you have your Plumbers created, all you need to do now is Invoke them wherever you would typically call the method with the NetworkAction.
     - It's recommended to use a [null conditional operator](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/member-access-operators) before invoking your Plumber.
     - Below are some of the parameters you can expect in the Plumber's Invoke method:
@@ -120,3 +105,8 @@
         - Both of these examples are called from inside non-static methods inside my NetworkBehaviour ``NetworkingTestWithPlumbing``
     - For information on what types can be passed in TParams over to Mirror's NetworkWriter/NetworkReader, please see [this page](https://github.com/MirrorNetworking/MirrorDocs/blob/main/manual/guides/data-types.md) of Mirror's Documentation.
         - Some games may also have custom NetworkWriter/NetworkReaders that you can utilize, YAPYAP does not and you cannot add new ones via a Mod (they require Weaving from Mirror)
+
+ ### Examples:
+ - Network Behaviour - [ExampleNetBehaviour.cs]
+ - Loading a Network Prefab - [ExampleCustomNetworkPrefab.cs]
+ - Example Mod - TBD

@@ -55,7 +55,7 @@ public abstract class PlumberBase
             return;
 
         type = netBehaviour;
-        _fullName = GetFullName(methodName);
+        _fullName = GetFullName(type, methodName);
         _hash = GetHash(_fullName);
         _requiresAuth = requiresAuthority;
         _netType = netType;
@@ -109,13 +109,13 @@ public abstract class PlumberBase
     }
 
     // Used as part of registering the network action with mirror, this emulates Mirror's standard registration
-    private string GetFullName(string methodName)
+    internal static string GetFullName(Type type, string methodName)
     {
-        return $"{type?.GetMethod(methodName).ReturnType} {type?.Namespace}::{methodName}";
+        return $"{type?.GetMethod(methodName)?.ReturnType} {type?.Namespace}::{methodName}";
     }
 
     // Used as part of registering the network action with mirror, this emulates Mirror's standard registration
-    private static ushort GetHash(string fullName)
+    internal static ushort GetHash(string fullName)
     {
         return (ushort)(fullName.GetStableHashCode() & 0xFFFF);
     }
