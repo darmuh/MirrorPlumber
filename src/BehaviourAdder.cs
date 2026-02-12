@@ -8,10 +8,10 @@ namespace MirrorPlumber;
 /// <summary>
 /// This class allows you to add your own custom NetworkBehaviour class to an existing Network Prefab
 /// </summary>
-public class AddClassToPrefab
+public class BehaviourAdder
 {
-    private static readonly List<KeyValuePair<AddClassToPrefab, uint>> PrefabAddons = []; //in this format so pairs dont need unique keys
-    private static readonly List<AddClassToPrefab> PlayerPrefabAddons = [];
+    private static readonly List<KeyValuePair<BehaviourAdder, uint>> PrefabAddons = []; //in this format so pairs dont need unique keys
+    private static readonly List<BehaviourAdder> PlayerPrefabAddons = [];
     private bool IsPlayerPrefab = false;
     private Type? NewBehaviour = null!;
 
@@ -52,7 +52,7 @@ public class AddClassToPrefab
         if (Frozen)
             return;
 
-        Plugin.Log.LogDebug(">>>AddClassToPrefab Freeze Event<<<");
+        Plugin.Log.LogDebug(">>>BehaviourAdder Freeze Event<<<");
 
         if (networkManager.playerPrefab.GetComponent<NetworkIdentity>() == null)
         {
@@ -66,7 +66,7 @@ public class AddClassToPrefab
 
         int playerComponentsAdded = 0;
         int spawnPrefabsModified = 0;
-        foreach(AddClassToPrefab component in PlayerPrefabAddons)
+        foreach(BehaviourAdder component in PlayerPrefabAddons)
         {
             if (component.NewBehaviour == null || !component.IsPlayerPrefab)
                 continue;
@@ -84,7 +84,7 @@ public class AddClassToPrefab
         {
             var SafeDict = GetNetIdentities(networkManager);
 
-            foreach (KeyValuePair<AddClassToPrefab, uint> pair in PrefabAddons)
+            foreach (KeyValuePair<BehaviourAdder, uint> pair in PrefabAddons)
             {
                 if (pair.Key.IsPlayerPrefab || pair.Key.NewBehaviour == null)
                     continue;

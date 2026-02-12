@@ -24,7 +24,7 @@ public partial class Plugin : BaseUnityPlugin
         public static void Prefix(NetworkManager __instance)
         {
             Log.LogDebug("NetworkManager Prefix");
-            AddClassToPrefab.FreezeEvent(__instance);
+            BehaviourAdder.FreezeEvent(__instance);
         }
     }
 }

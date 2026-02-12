@@ -1,112 +1,30 @@
 # Mirror Plumber
 
-**Utility BepInEx Mod that allows modders to insert and use new NetworkActions (Commands, ClientRpcs, and TargetRpcs)**  
+**Utility BepInEx Mod that allows modders to utilize various Mirror Networking functions at runtime**  
 
 - This was built for YAPYAP, however, it should work in any other unity game that utilizes the same style of Mirror Networking.  
 
-## Mirror Network Prefabs 
- *Note: These steps assume you have some prior Unity modding knowledge.*  
- *If you do not need a background on Mirror Networking and just want to know how to use this utility, skip to ``Using MirrorPlumber for your NetworkBehaviour``*
+ ### Features:  
+ - Plumber class which facilitates all the internal plumbing Mirror requires to get a NetworkBehaviour working at runtime.  
+	- Mirror does not recognize it's Attribute tags at runtime so you'll need to utilize this Plumber (or perhaps a patcher in the future) in order to get things working.  
+	- Currently supports Commands, ClientRpcs, and TargetRpcs.  
+	- SyncVar support is a planned feature, pending I can get a decent implementation working.  
+ - BehaviourAdder class handles adding custom classes that inherit NetworkBehaviour to existing Prefabs.  
+	- Currently supports adding custom NetworkBehaviour classes to the Player Prefab and any prefab in NetworkManager's spawnPrefabs list.  
+	- The classes are hooked into the prefabs during a NetworkManager Awake prefix patch.   
+	- You will need to the assetId for any non-player prefab you wish to add a custom NetworkBehaviour class to.   
+	- NOTE: Prefabs cannot contain more than 64 NetworkBehaviours  
+	- NOTE 2: You will still need to have MirrorPlumber perform the plumbing of your NetworkBehaviour class for it to properly network.  
+ - GameObjectExtensions class holds useful game object extension methods that pertain to Mirror and MirrorPlumber.  
+	- ``TryRegisterPrefab`` Register your GameObject prefab with Mirror and get it's NetworkIdentity assetId for spawning later  
+		- If the prefab is null or does not contain a NetworkIdentity this will return false  
+		- When true, provides you the NetworkIdentity assetId. You should cache this value so you can use it to spawn the prefab over the network later.  
 
-### Create a GameObject that will serve as your Network Prefab containg your NetworkBehaviour  
- - This game object should at the minimum contain a ``Networkidentity`` component.  
-	- Your class inheriting NetworkBehaviour should also be attached to this game object either during in Unity or added during runtime.  
-	- You cannot add a ``Networkidentity`` component at runtime because the assetId property will not be set properly.  
- - Once you have created your Prefab with the ``NetworkIdentity`` component, build it into an asset bundle.  
+ ### Examples:  
+ - Network Behaviour - [ExampleNetBehaviour.cs](https://github.com/darmuh/MirrorPlumber/blob/master/Examples/ExampleNetBehaviour.cs)  
+ - Loading a Network Prefab - [ExampleCustomNetworkPrefab.cs](https://github.com/darmuh/MirrorPlumber/blob/master/Examples/ExampleCustomNetworkPrefab.cs)  
+ - Example Mod - TBD  
 
-### Loading your GameObject Assetbundle as a Network Prefab  
- - Load your asset bundle containing your game object at Plugin Awake. If you have not added your Network Behaviour classes already, add them as components now.  
-	- You'll want to cache your GameObject as it will be used in a few other places.  
- - Either at Plugin Start or at another appropriate time (before hosting a game session), you'll want to then use ``NetworkClient.RegisterPrefab`` on your game object.  
-	- You'll also need to cache the assetId by performing ``GetComponent<NetworkIdentity>().assetId`` after you've registered your prefab.  
-    
-### Spawning your Network Prefab  
- - Once your prefab has been properly registered, you can now spawn it once a game session has been started and the server is active.  
-	- Ensure you are ONLY spawning the object from the server client.  
- - To spawn a NetworkPrefab you will Instantiate a copy of your cached GameObject and then run ``NetworkServer.Spawn`` on the copy with your cached assetId.  
-
-### YAPYAP Simple NetworkPrefab Load/Spawn Example (Without MirrorPlumber)
-
-```
-        internal static ManualLogSource Log { get; private set; } = null!;
-        internal static GameObject Networker = null!;
-        internal static uint NetworkerID = default!;
-
-        private void Awake()
-        {
-            Log = Logger;
-
-            Log.LogInfo($"Plugin {Name} is loaded!");
-
-            //Networker Bundle
-            string networkAsset = Path.Combine(Path.GetDirectoryName(Info.Location), "networker");
-            AssetBundle networker = AssetBundle.LoadFromFile(networkAsset);
-            Networker = networker.LoadAsset<GameObject>("Networker");
-            Networker.AddComponent<NetworkingTestWithPlumbing>();
-            GameManager.OnPlayerSpawned += OnPawnSpawn;
-        }
-
-        private void Start()
-        {
-            Log.LogMessage("Registering network prefabs");
-            NetworkClient.RegisterPrefab(Networker);
-            NetworkerID = Networker.GetComponent<NetworkIdentity>().assetId;
-            Log.LogDebug($"NetworkerID - {NetworkerID}");
-        }
-
-        private static void OnPawnSpawn(Pawn pawn)
-        {
-            Log.LogMessage($"Pawn spawned {pawn.PlayerName}");
-
-            if (!pawn.isLocalPlayer)
-                return;
-
-            if (pawn.isServer)
-            {
-                Log.LogDebug("Spawning networker");
-                var networker = Object.Instantiate(Networker);
-                NetworkServer.Spawn(networker, NetworkerID);
-            }
-        }
-```
-
-**In the above example:**
- - The NetworkBehaviour ``NetworkingTestWithPlumbing`` is added to the Networker GameObject at Plugin Awake  
- - Networker is then registered as a Network Prefab in Plugin Start and the assetId is cached as NetworkerID
- - OnPlayerSpawn is listening to the GameManager.OnPlayerSpawned event. When a player is spawned, it checks if the player is the server and then also spawns the testing networker object.
-
-### Where MirrorPlumber comes in
- - Without MirrorPlumber, this is where you would find that the various Attributes ``[ClientRpc]``, ``[Command]``, etc. are not actually utilizing Mirror to send the information across the network.  
- - You *could* perform your own plumbing and register each and every NetworkAction yourself following the logic for ``RemoteProcedureCalls.RegisterDelegate`` or ``RemoteProcedureCalls.RegisterRpc`` or `RemoteProcedureCalls.RegisterCommand`  
-    - However this process is incredibly tedious and will certainly cause you some headaches.  
- - MirrorPlumber does all of this manual plumbing for you. You'll just need to perform a few steps in your NetworkBehaviour to start the process.  
- 
- ## Using MirrorPlumber for your NetworkBehaviour
- - To start, it is recommended to create a static reference to each Plumber you create.
-    - This is because you will be the one to invoke these network actions in your code, so you'll need a reference to it.
-
- - Creating the Plumbers is recommended to be done in your NetworkBehaviour's Awake method, however it can be done any time after the prefab holding your NetworkBehaviour has been spawned.  
-    - You create the Plumber with a simple method called ``Create`` that takes the following parameters:
-        - ``System.Type netBehaviour`` You'll provide this by converting your NetworkBehaviour to a System.Type - ie: ``typeof(MyNetworkBehaviour)``
-        - ``string methodName`` This is the name of the Method you are performing plumbing for - ie: ``nameof(MyNetworkedMethod)``
-        - ``NetType netType`` This is an enum created by MirrorPlumber to help identify what kind of NetworkAction you are requesting plumbing for.
-        - ``bool requiresAuthority = false`` (Optional) This bool determines if the NetworkAction requires ownership of the Network Prefab before being used. 
-    - NOTE: You cannot invoke Network Actions without having created your Plumber.
-    - Once you have created your Plumber, you should then add the method you wish to run when the NetworkAction is received via ``AddListener``. 
-      - This can be multiple methods so long as each one has the number of parameters expected with the correct type.
-
- - Now that you have your Plumbers created, all you need to do now is Invoke them wherever you would typically call the method with the NetworkAction.
-    - It's recommended to use a [null conditional operator](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/operators/member-access-operators) before invoking your Plumber.
-    - Below are some of the parameters you can expect in the Plumber's Invoke method:
-        - ``TSource instance`` This is the instance of your NetworkBehaviour that is calling this method.
-        - ``NetworkConnection target = null!`` (OPTIONAL) If your NetworkAction is a TargetRpc, you'll need to set this to the client you wish to send the NetworkAction to.
-        - ``TParam param`` or ``TParam1 param1`` or ``TParam2 param2`` All of these potential parameters are values of the parameter types you are sending to other clients.
-    - Examples: ``GeneratedCommand?.Invoke(this);`` ``GeneratedRPC?.Invoke(this, "Hello World from the network!", 1337, NetworkServer.connections[0]);``
-        - Both of these examples are called from inside non-static methods inside my NetworkBehaviour ``NetworkingTestWithPlumbing``
-    - For information on what types can be passed in TParams over to Mirror's NetworkWriter/NetworkReader, please see [this page](https://github.com/MirrorNetworking/MirrorDocs/blob/main/manual/guides/data-types.md) of Mirror's Documentation.
-        - Some games may also have custom NetworkWriter/NetworkReaders that you can utilize, YAPYAP does not and you cannot add new ones via a Mod (they require Weaving from Mirror)
-
- ### Examples:
- - Network Behaviour - [ExampleNetBehaviour.cs]
- - Loading a Network Prefab - [ExampleCustomNetworkPrefab.cs]
- - Example Mod - TBD
+ ### Documentation:  
+  - Documentation is WIP, for now you can view the [old readme]() which had a lot of good but poorly organized information.  
+  - It is HIGHLY recommended to reference [Mirror's own documentation](https://mirror-networking.gitbook.io/docs)

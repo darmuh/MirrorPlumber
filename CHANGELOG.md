@@ -6,7 +6,7 @@
 	- Now rather than creating a new Plumber every awake, it should be defined only once and then ``Create`` can be ran multiple times without any issues.
  - Added Examples folder to github.
 	- This should help the visual learners who learn strictly thru code.
- - Added ``AddClassToPrefab`` class for adding network behaviours to existing prefabs at runtime.
+ - Added ``BehaviourAdder`` class for adding network behaviours to existing prefabs at runtime.
 	- Handles both the PlayerPrefab and any spawnPrefab in the list that you can match to an assetId
  - Added ``GameObjectExtensions`` class for useful extension methods relating to Mirror/MirrorPlumber
 	- ``TryRegisterPrefab`` will attempt to take your GameObject prefab and register it with MirrorClient

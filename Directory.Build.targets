@@ -11,8 +11,9 @@
   "name": "MirrorPlumber",
   "version_number": "$(Version)",
   "website_url": "https://github.com/darmuh/MirrorPlumber",
-  "description": "Utility Mod that allows modders to insert and use new NetworkActions (Commands, ClientRpcs, and TargetRpcs)",
-  "dependencies": []
+  "description": "Utility BepInEx Mod that allows modders to utilize various Mirror Networking functions at runtime",
+  "dependencies": [
+  ]
 }
 </TSManifest>
   </PropertyGroup>
