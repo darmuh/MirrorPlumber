@@ -26,5 +26,5 @@
  - Example Mod - TBD  
 
  ### Documentation:  
-  - Documentation is WIP, for now you can view the [old readme]() which had a lot of good but poorly organized information.  
+  - Documentation is WIP, for now you can view the [old readme](https://github.com/darmuh/MirrorPlumber/blob/master/Wiki/Old-README.md) which had a lot of good but poorly organized information.  
   - It is HIGHLY recommended to reference [Mirror's own documentation](https://mirror-networking.gitbook.io/docs)
