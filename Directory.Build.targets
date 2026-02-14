@@ -22,7 +22,7 @@
   <ItemGroup>
     <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3" PrivateAssets="all" />
-    <PackageReference Include="Hamunii.BepInEx.AutoPlugin" Version="2.0.*" PrivateAssets="all" />
+    <PackageReference Include="Hamunii.BepInEx.AutoPlugin" Version="2.1.*" PrivateAssets="all" />
 	<PackageReference Include="BepInEx.Core" Version="5.4.21" />
 	<PackageReference Include="UnityEngine.Modules" Version="$(UnityModulesVer)" PrivateAssets="all" />
   </ItemGroup>
@@ -36,6 +36,7 @@
   <Target Name="ReleaseFiles" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
     <MakeDir Directories="$(ThunderstoreBuildPath)" Condition="!Exists('$(ThunderstoreBuildPath)')"  />
 	<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ThunderstoreBuildPath)" />
+	  <Copy SourceFiles="$(TargetDir)$(TargetName).xml" DestinationFolder="$(ThunderstoreBuildPath)" />
 	<Copy SourceFiles="$(MSBuildThisFileDirectory)LICENSE" DestinationFolder="$(ThunderstoreBuildPath)" />
 	<Copy SourceFiles="$(MSBuildThisFileDirectory)CHANGELOG.md" DestinationFolder="$(ThunderstoreBuildPath)" />
 	<Copy SourceFiles="$(MSBuildThisFileDirectory)README.md" DestinationFolder="$(ThunderstoreBuildPath)" />

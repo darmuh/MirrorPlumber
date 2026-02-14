@@ -4,7 +4,8 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>com.github.darmuh.MirrorPlumber</AssemblyName>
     <AssemblyTitle>MirrorPlumber</AssemblyTitle>
-    <Version>0.2.1</Version>
+    <Version>0.3.0</Version>
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

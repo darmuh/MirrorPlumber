@@ -28,9 +28,6 @@ public class Plugin : BaseUnityPlugin
         Networker = networker.LoadAsset<GameObject>("Networker");
         Networker.AddComponent<ExampleNetBehaviour>();
         Log.LogMessage("Registering network prefabs");
-        if (!Networker.TryRegisterPrefab(out NetworkerID))
-        {
-            Log.LogError("My Networker failed to register!");
-        }
+        Log.LogMessage($"Networker will be registered with Mirror - {Networker.TryRegisterPrefab(out NetworkerID)}";
     }
 }

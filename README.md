@@ -6,9 +6,8 @@ This was built for YAPYAP, however, it should work in any other unity game that 
 
  ### Features:  
  - Plumber class which facilitates all the internal plumbing Mirror requires to get a NetworkBehaviour working at runtime.  
-	- Mirror does not recognize it's Attribute tags at runtime so you'll need to utilize this Plumber (or perhaps a patcher in the future) in order to get things working.  
-	- Currently supports Commands, ClientRpcs, and TargetRpcs.  
-	- SyncVar support is a planned feature, pending I can get a decent implementation working.  
+	- Mirror does not recognize it's Attribute tags at runtime so you'll need to utilize this Plumber in order to get things working. *(without a patcher or Mirror's weaver*)*  
+	- Currently supports Commands, ClientRpcs, TargetRpcs, and Psuedo-SyncVars (PlumbVars).  See ``ExampleNetBehaviour.cs``
 
  - BehaviourAdder class handles adding custom classes that inherit NetworkBehaviour to existing Prefabs.  
 	- Currently supports adding custom NetworkBehaviour classes to the Player Prefab and any prefab in NetworkManager's spawnPrefabs list.  
@@ -18,10 +17,15 @@ This was built for YAPYAP, however, it should work in any other unity game that 
 	- NOTE 2: You will still need to have MirrorPlumber perform the plumbing of your NetworkBehaviour class for it to properly network.
     - NOTE 3: When adding a NetworkBehaviour to the Player Prefab, keep in mind your NetworkBehaviour will be on *every* instance of the Player Prefab. Not just the local instance. 
 
- - GameObjectExtensions class which holds useful game object extension methods that pertain to Mirror and MirrorPlumber.  
-	- ``TryRegisterPrefab`` Register your GameObject prefab with Mirror and get it's NetworkIdentity assetId for spawning later  
-		- If the prefab is null or does not contain a NetworkIdentity this will return false  
-		- When true, provides you the NetworkIdentity assetId. You should cache this value so you can use it to spawn the prefab over the network later.  
+ - GameObjectExtensions class which holds useful gameobject extension methods that pertain to Mirror and MirrorPlumber.   
+	- ``TryRegisterPrefab`` Attempts to add a given gameobject to an internal MirrorPlumber list of game objects that will be registered at Mirror's ``NetworkClient.Initialize``  
+		- If the prefab is null or does not contain a NetworkIdentity this will return false    
+	- ``TryGetAssetId`` Attempts to provide you with a given gameobject's NetworkIdentity assetId.  
+		- If the game object is null or does not have a NetworkIdentity, returns false  
+	- ``TryUntrackPrefab`` Attempts to remove a given gameobject (prefab) from the internal MirrorPlumber list of game objects that will be registered at ``NetworkClient.Initialize``  
+		- If the gameobject is null, does not contain a NetworkIdentity, or is not already in the list it will return false.  
+	- ``TrySpawnOnServer`` Attempts to spawn a given gameobject (prefab) on the server  
+		- If the prefab is null or Mirror's ``NetworkClient`` does not contain the prefab in it's prefabs list, this will return false.  
 
  ### Examples:  
  - Network Behaviour using MirrorPlumber - [ExampleNetBehaviour.cs](https://github.com/darmuh/MirrorPlumber/blob/master/Examples/ExampleNetBehaviour.cs)  

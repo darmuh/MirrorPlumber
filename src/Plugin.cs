@@ -2,11 +2,12 @@
 using BepInEx.Logging;
 using HarmonyLib;
 using Mirror;
+using UnityEngine;
 
 namespace MirrorPlumber;
 
 [BepInAutoPlugin]
-public partial class Plugin : BaseUnityPlugin
+internal partial class Plugin : BaseUnityPlugin
 {
     internal static ManualLogSource Log { get; private set; } = null!;
 
@@ -23,8 +24,25 @@ public partial class Plugin : BaseUnityPlugin
     {
         public static void Prefix(NetworkManager __instance)
         {
-            Log.LogDebug("NetworkManager Prefix");
+            Log.LogDebug("NetworkManager Awake Prefix");
             BehaviourAdder.FreezeEvent(__instance);
+        }
+    }
+
+    [HarmonyPatch(typeof(NetworkClient), nameof(NetworkClient.Initialize))]
+    public class Initialize
+    {
+        public static void Prefix()
+        {
+            Log.LogDebug("NetworkClient Initialize Prefix");
+            foreach (GameObject gameObject in GameObjectExtensions.RegisteredPrefabs)
+            {
+                if (!NetworkClient.prefabs.ContainsValue(gameObject))
+                {
+                    Log.LogMessage("registering prefab");
+                    NetworkClient.RegisterPrefab(gameObject);
+                }
+            }
         }
     }
 }

@@ -5,23 +5,30 @@ namespace MyMod;
 
 public class ExampleNetBehaviour : NetworkBehaviour
 {
-    internal static Plumber GeneratedCommand = new();
-    internal static Plumber<string, int> GeneratedRPC = new();
-    internal int TestInt = 0;
-
+    internal static readonly Plumber GeneratedCommand = new();
+    internal static readonly Plumber<string, int> GeneratedRPC = new();
+    internal static readonly PlumbVar<ExampleNetBehaviour, int> TestIntVar = new(0);
 
     private void Awake()
     {
+        SpawnedObjectTracker.RegisterObject(gameObject);
         GeneratedCommand.Create(typeof(ExampleNetBehaviour), nameof(CmdSendHello), PlumberBase.NetType.Command);
-        GeneratedCommand.AddListener(TargetRpcMessage);
-
+        GeneratedCommand.SetListener(TargetRpcMessage);
         GeneratedRPC.Create(typeof(ExampleNetBehaviour), nameof(TargetRpcMessage), PlumberBase.NetType.TargetRpc);
         GeneratedRPC.AddListener(HelloFromTheNetwork);
+        TestIntVar.Create(this);
+    }
+
+    private void OnDestroy()
+    {
+        //Since GeneratedRpc uses AddListener, you'll need to clear existing listeners on destroy
+        //SetListener on the other hand does this for you
+        GeneratedRPC.ClearListeners();
     }
 
     private void Start()
     {
-        TestInt = UnityEngine.Random.Range(0, 1337);
+        TestIntVar.Value = UnityEngine.Random.Range(0, 1337);
         CmdSendHello();
     }
 
@@ -42,7 +49,7 @@ public class ExampleNetBehaviour : NetworkBehaviour
         Plugin.Log.LogMessage($"{this} - TargetRpcMessage");
 
         // Server invokes TargetRpc which targets the first connection client, running HelloFromTheNetwork 
-        GeneratedRPC?.Invoke(this, "Hello World from the network!", TestInt, NetworkServer.connections[0]);
+        GeneratedRPC?.Invoke(this, "Hello World from the network!", TestIntVar.Value, NetworkServer.connections[0]);
     }
 
     //This is the method that runs on the target client of the above TargetRpc

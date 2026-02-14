@@ -1,12 +1,20 @@
 ﻿using System;
-using System.Linq;
 using Mirror;
 using Mirror.RemoteCalls;
 
 namespace MirrorPlumber;
 
+/// <summary>
+/// Delegate that is used to invoke NetworkEvent actions for MirrorPlumber subscribers with 0 parameters.
+/// </summary>
 public delegate void NetworkEvent();
+/// <summary>
+/// Delegate that is used to invoke NetworkEvent actions for MirrorPlumber subscribers with 1 parameter.
+/// </summary>
 public delegate void NetworkEvent<T>(T param);
+/// <summary>
+/// Delegate that is used to invoke NetworkEvent actions for MirrorPlumber subscribers with 2 parameters.
+/// </summary>
 public delegate void NetworkEvent<T1, T2>(T1 param1, T2 param2);
 
 /// <summary>
@@ -34,18 +42,32 @@ public abstract class PlumberBase
     /// </remarks>
     public enum NetType
     {
+        /// <summary>
+        /// Commands are sent from player objects on the client to player objects on the server. 
+        /// For security, Commands can only be sent from YOUR player object by default, so you cannot control the objects of other players. 
+        /// You can bypass the authority check using [Command(requiresAuthority = false)].
+        /// </summary>
         Command,
+        /// <summary>
+        /// ClientRpc calls are sent from objects on the server to objects on clients. 
+        /// They can be sent from any server object with a NetworkIdentity that has been spawned.
+        /// Since the server has authority, then there no security issues with server objects being able to send these calls.
+        /// </summary>
         ClientRpc,
+        /// <summary>
+        /// TargetRpc functions are called by user code on the server, and then invoked on the corresponding client object on the client of the specified NetworkConnection. 
+        /// The arguments to the RPC call are serialized across the network, so that the client function is invoked with the same values as the function on the server. 
+        /// </summary>
         TargetRpc
     }
 
     /// <summary>
-    /// This method method will immediately Create & Register your Plumber with Mirror. It's recommended to do this at your NetworkBehaviour's Awake method.
+    /// This method method will immediately Create and Register your Plumber with Mirror. It's recommended to do this at your NetworkBehaviour's Awake method.
     /// </summary>
     /// <param name="netBehaviour">The System.Type converison of your NetworkBehaviour. ie. typeof(MyNetworkBehaviour)</param>
     /// <param name="methodName">This is the name of the method you wish to perform plumbing for. ie. nameof(MyNetworkedMethod)</param>
-    /// <param name="netType">This is the type of Mirror Network Action you wish to perform plumbing for.</param>
-    /// <param name="requiresAuthority">If enabled, only the host client can invoke this network action</param>
+    /// <param name="netType">This is the type of Mirror Network Event you wish to perform plumbing for.</param>
+    /// <param name="requiresAuthority">If enabled, only the host client can invoke this network event</param>
     /// <remarks>
     /// This method can be run as much as you want, however only the first time will it actually perform any actions with Mirror.
     /// </remarks>
@@ -87,7 +109,7 @@ public abstract class PlumberBase
     // Utility method for packing and sending the remote action based on what type of action it is 
     internal void SendToMirror<T>(T instance, NetworkWriterPooled writer, NetworkConnection target = null!) where T : NetworkBehaviour
     {
-        if(instance == null)
+        if (instance == null)
         {
             Plugin.Log.LogError($"{(typeof(T))} instance is Null!");
             return;
@@ -108,13 +130,13 @@ public abstract class PlumberBase
         NetworkWriterPool.Return(writer);
     }
 
-    // Used as part of registering the network action with mirror, this emulates Mirror's standard registration
+    // Used as part of registering the Network Event with mirror, this emulates Mirror's standard registration
     internal static string GetFullName(Type type, string methodName)
     {
         return $"{type?.GetMethod(methodName)?.ReturnType} {type?.Namespace}::{methodName}";
     }
 
-    // Used as part of registering the network action with mirror, this emulates Mirror's standard registration
+    // Used as part of registering the Network Event with mirror, this emulates Mirror's standard registration
     internal static ushort GetHash(string fullName)
     {
         return (ushort)(fullName.GetStableHashCode() & 0xFFFF);
@@ -132,7 +154,7 @@ public abstract class PlumberBase
 }
 
 /// <summary>
-/// This is your standard plumber for any network action that does not use any parameters
+/// This is your standard plumber for any Network Event that does not use any parameters
 /// </summary>
 /// <remarks>
 /// You should define your Plumber for your NetworkBehaviour type at Awake. As it will be registered as soon as it is defined.
@@ -143,18 +165,41 @@ public class Plumber : PlumberBase
     private event NetworkEvent NetworkedEvent = null!;
 
     /// <summary>
-    /// Add a method as a listener to this Network Action.
+    /// Add an additional method as a listener to this Network Event.
     /// </summary>
-    /// <param name="listener">The method you wish to run when your Network Action is called</param>
+    /// <param name="listener">The method you wish to run when your Network Event is called</param>
     /// <remarks>
-    /// There is handling here not to add the same listener more than once.
+    /// If a listener is added more than once it will run more than once.
+    /// Listeners WILL persist after destruction if not cleared.
+    /// Use <see cref="ClearListeners"/> to clear any existing listeners that have been destroyed before adding any new listeners.
+    /// If defining your listener in your NetworkBehaviour awake, it is recommended to use <see cref="SetListener"/> for the first listener 
+    /// <see cref="SetListener"/> will clear any existing listeners to avoid adding duplicates or listeners with destroyed components.
     /// </remarks>
     public void AddListener(NetworkEvent listener)
     {
-        if (NetworkedEvent.GetInvocationList().Contains(listener))
-            return;
-
         NetworkedEvent += listener;
+    }
+
+    /// <summary>
+    /// Clear any existing listeners for this Network Event and set to a new one.
+    /// </summary>
+    /// <param name="listener">The method you wish to run when your Network Event is called. It must take two parameters with the types TParam1 and TParam2 (in that order)</param>
+    /// <remarks>
+    /// When setting listeners for your network event, this should be used to specify your event's first listener. 
+    /// Any additional listeners should be set with <see cref="AddListener"/>
+    /// </remarks>
+    public void SetListener(NetworkEvent listener)
+    {
+        NetworkedEvent = null!;
+        NetworkedEvent += listener;
+    }
+
+    /// <summary>
+    /// Clear all listeners from this Network Event.
+    /// </summary>
+    public void ClearListeners()
+    {
+        NetworkedEvent = null!;
     }
 
     /// <summary>
@@ -194,9 +239,9 @@ public class Plumber : PlumberBase
 }
 
 /// <summary>
-/// This is a Plumber for any Network Action that takes one parameter
+/// This is a Plumber for any Network Event that takes one parameter
 /// </summary>
-/// <typeparam name="TParam">This is the type your network action takes as a parameter.</typeparam>
+/// <typeparam name="TParam">This is the type your network event takes as a parameter.</typeparam>
 /// <remarks>
 /// TParam can be any type that Mirror can successfully read/write with. For more information see https://github.com/MirrorNetworking/MirrorDocs/blob/main/manual/guides/data-types.md
 /// You should define your Plumber for your NetworkBehaviour type at Awake. As it will be registered as soon as it is defined.
@@ -207,12 +252,41 @@ public class Plumber<TParam> : PlumberBase
     private event NetworkEvent<TParam> NetworkedEvent = null!;
 
     /// <summary>
-    /// Add a method as a listener to this Network Action.
+    /// Add an additional method as a listener to this Network Event.
     /// </summary>
-    /// <param name="listener">The method you wish to run when your Network Action is called. It must take a parameter of the same type as TParam</param>
+    /// <param name="listener">The method you wish to run when your Network Event is called. It must take a parameter of the same type as TParam</param>
+    /// <remarks>
+    /// If a listener is added more than once it will run more than once.
+    /// Listeners WILL persist after destruction if not cleared.
+    /// Use <see cref="ClearListeners"/> to clear any existing listeners that have been destroyed before adding any new listeners.
+    /// If defining your listener in your NetworkBehaviour awake, it is recommended to use <see cref="SetListener"/> for the first listener 
+    /// <see cref="SetListener"/> will clear any existing listeners to avoid adding duplicates or listeners with destroyed components.
+    /// </remarks>
     public void AddListener(NetworkEvent<TParam> listener)
     {
         NetworkedEvent += listener;
+    }
+
+    /// <summary>
+    /// Clear any existing listeners for this Network Event and set to a new one.
+    /// </summary>
+    /// <param name="listener">The method you wish to run when your Network Event is called. It must take two parameters with the types TParam1 and TParam2 (in that order)</param>
+    /// <remarks>
+    /// When setting listeners for your network event, this should be used to specify your event's first listener. 
+    /// Any additional listeners should be set with <see cref="AddListener"/>
+    /// </remarks>
+    public void SetListener(NetworkEvent<TParam> listener)
+    {
+        NetworkedEvent = null!;
+        NetworkedEvent += listener;
+    }
+
+    /// <summary>
+    /// Clear all listeners from this Network Event.
+    /// </summary>
+    public void ClearListeners()
+    {
+        NetworkedEvent = null!;
     }
 
     /// <summary>
@@ -229,7 +303,7 @@ public class Plumber<TParam> : PlumberBase
     {
         NetworkWriterPooled writer = NetworkWriterPool.Get();
 
-        if(param == null)
+        if (param == null)
         {
             Plugin.Log.LogError("Given Parameter is null! Mirror cannot read/write NULL values!");
             return;
@@ -267,12 +341,12 @@ public class Plumber<TParam> : PlumberBase
 }
 
 /// <summary>
-/// This is a Plumber for any Network Action that takes two parameters
+/// This is a Plumber for any Network Event that takes two parameters
 /// </summary>
-/// <typeparam name="TParam1">This is the first type your network action takes as a parameter</typeparam>
-/// <typeparam name="TParam2">This is the second type your network action takes as a parameter</typeparam>
+/// <typeparam name="TParam1">This is the first type your network event takes as a parameter</typeparam>
+/// <typeparam name="TParam2">This is the second type your network event takes as a parameter</typeparam>
 /// <remarks>
-/// TParam1 & TParam2 can be any type that Mirror can successfully read/write with. For more information see https://github.com/MirrorNetworking/MirrorDocs/blob/main/manual/guides/data-types.md
+/// TParam1 and TParam2 can be any type that Mirror can successfully read/write with. For more information see https://github.com/MirrorNetworking/MirrorDocs/blob/main/manual/guides/data-types.md
 /// You should define your Plumber for your NetworkBehaviour type at Awake. As it will be registered as soon as it is defined.
 /// If you do not define the Plumber in Awake, make sure you define it before you try to run any NetworkAction methods.
 /// </remarks>
@@ -281,12 +355,41 @@ public class Plumber<TParam1, TParam2> : PlumberBase
     private event NetworkEvent<TParam1, TParam2> NetworkedEvent = null!;
 
     /// <summary>
-    /// Add a method as a listener to this Network Action.
+    /// Add an additional method as a listener to this Network Event.
     /// </summary>
-    /// <param name="listener">The method you wish to run when your Network Action is called. It must take two parameters with the types TParam1 and TParam2 (in that order)</param>
+    /// <param name="listener">The method you wish to run when your Network Event is called. It must take two parameters with the types TParam1 and TParam2 (in that order)</param>
+    /// <remarks>
+    /// If a listener is added more than once it will run more than once.
+    /// Listeners WILL persist after destruction if not cleared.
+    /// Use <see cref="ClearListeners"/> to clear any existing listeners that have been destroyed before adding any new listeners.
+    /// If defining your listener in your NetworkBehaviour awake, it is recommended to use <see cref="SetListener"/> for the first listener 
+    /// <see cref="SetListener"/> will clear any existing listeners to avoid adding duplicates or listeners with destroyed components.
+    /// </remarks>
     public void AddListener(NetworkEvent<TParam1, TParam2> listener)
     {
         NetworkedEvent += listener;
+    }
+
+    /// <summary>
+    /// Clear any existing listeners for this Network Event and set to a new one.
+    /// </summary>
+    /// <param name="listener">The method you wish to run when your Network Event is called. It must take two parameters with the types TParam1 and TParam2 (in that order)</param>
+    /// <remarks>
+    /// When setting listeners for your network event, this should be used to specify your event's first listener. 
+    /// Any additional listeners should be set with <see cref="AddListener"/>
+    /// </remarks>
+    public void SetListener(NetworkEvent<TParam1, TParam2> listener)
+    {
+        NetworkedEvent = null!;
+        NetworkedEvent += listener;
+    }
+
+    /// <summary>
+    /// Clear all listeners from this Network Event.
+    /// </summary>
+    public void ClearListeners()
+    {
+        NetworkedEvent = null!;
     }
 
     /// <summary>
@@ -345,5 +448,60 @@ public class Plumber<TParam1, TParam2> : PlumberBase
         {
             NetworkedEvent?.Invoke(reader.Read<TParam1>(), reader.Read<TParam2>());
         }
+    }
+}
+
+/// <summary>
+/// 
+/// </summary>
+/// <typeparam name="TSource"></typeparam>
+/// <typeparam name="TValue"></typeparam>
+public class PlumbVar<TSource, TValue>(TValue initialValue) where TSource : NetworkBehaviour
+{
+    private TSource? SourceInstance = default;
+    private static readonly Plumber<TValue> CommandUpdateValue = new();
+    private static readonly Plumber<TValue> ClientRpcUpdateValue = new();
+    private readonly TValue initVal = initialValue;
+    private TValue _value = initialValue;
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public TValue Value
+    {
+        get
+        {
+            return _value;
+        }
+        set
+        {
+            _value = value;
+            if (SourceInstance != null)
+            {
+                if (SourceInstance.isServer)
+                    ClientRpcUpdateValue?.Invoke(SourceInstance, value);
+                else
+                    CommandUpdateValue?.Invoke(SourceInstance, value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Create plumbvar networking
+    /// </summary>
+    /// <param name="NetBehaviourInstance"></param>
+    public void Create(TSource NetBehaviourInstance)
+    {
+        _value = initVal;
+        SourceInstance = NetBehaviourInstance;
+        CommandUpdateValue.Create(typeof(TSource), $"{typeof(TSource).Name} {nameof(TValue)} PlumbVar Command", PlumberBase.NetType.Command);
+        CommandUpdateValue.SetListener(UpdateValue);
+        ClientRpcUpdateValue.Create(typeof(TSource), $"{typeof(TSource).Name} {nameof(TValue)} PlumbVar ClientRpc", PlumberBase.NetType.ClientRpc);
+        ClientRpcUpdateValue.SetListener(UpdateValue);
+    }
+
+    private void UpdateValue(TValue value)
+    {
+        _value = value;
     }
 }
