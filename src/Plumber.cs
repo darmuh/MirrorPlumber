@@ -452,12 +452,24 @@ public class Plumber<TParam1, TParam2> : PlumberBase
 }
 
 /// <summary>
-/// 
+/// This is a class that will hold a networked value and sync it over the network when you set it.
 /// </summary>
 /// <typeparam name="TSource"></typeparam>
 /// <typeparam name="TValue"></typeparam>
+/// <remarks>
+/// While this does behave similarly to a SyncVar, this is not a native Mirror syncvar. 
+/// It will hold a reference of your value and sync it over the network via a Command/ClientRpc combination.
+/// </remarks>
 public class PlumbVar<TSource, TValue>(TValue initialValue) where TSource : NetworkBehaviour
 {
+    /// <summary>
+    /// This event is invoked whenever the value is changed over the network.
+    /// </summary>
+    /// <remarks>
+    /// You can subscribe to this event with any method that takes the same parameter as the value you are tracking.
+    /// For more information on subscribing to events, see https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/events/how-to-subscribe-to-and-unsubscribe-from-events
+    /// </remarks>
+    public event Action<TValue> OnValueChanged = null!;
     private TSource? SourceInstance = default;
     private static readonly Plumber<TValue> CommandUpdateValue = new();
     private static readonly Plumber<TValue> ClientRpcUpdateValue = new();
@@ -465,8 +477,13 @@ public class PlumbVar<TSource, TValue>(TValue initialValue) where TSource : Netw
     private TValue _value = initialValue;
 
     /// <summary>
-    /// 
+    /// This is the value holder for your PlumbVar.
     /// </summary>
+    /// <remarks>
+    /// When getting the value, you are returned your current reference value (no networking is done).
+    /// When setting the value, your changes are synced over the network to all other clients.
+    /// If you are receiving a networked change, your reference value will be updated and any listeners to the OnValueChanged event will be invoked.
+    /// </remarks>
     public TValue Value
     {
         get
@@ -487,11 +504,16 @@ public class PlumbVar<TSource, TValue>(TValue initialValue) where TSource : Netw
     }
 
     /// <summary>
-    /// Create plumbvar networking
+    /// This method will Create your PlumbVar instance.
     /// </summary>
-    /// <param name="NetBehaviourInstance"></param>
+    /// <param name="NetBehaviourInstance">This is the instance of your NetworkBehaviour</param>
+    /// <remarks>
+    /// This method is recommended to be run in your NetworkBehaviour's Awake method.
+    /// The command and clientrpc associated to syncing this value across the network is set here.
+    /// </remarks>
     public void Create(TSource NetBehaviourInstance)
     {
+        Plugin.Log.LogDebug($"Creating PlumbVar for {NetBehaviourInstance}!");
         _value = initVal;
         SourceInstance = NetBehaviourInstance;
         CommandUpdateValue.Create(typeof(TSource), $"{typeof(TSource).Name} {nameof(TValue)} PlumbVar Command", PlumberBase.NetType.Command);
@@ -503,5 +525,6 @@ public class PlumbVar<TSource, TValue>(TValue initialValue) where TSource : Netw
     private void UpdateValue(TValue value)
     {
         _value = value;
+        OnValueChanged?.Invoke(value);
     }
 }

@@ -1,5 +1,9 @@
 # MirrorPlumber Changelog
 
+## 0.3.1
+ - Updated xml documentation for PlumbVars
+ - Added OnValueChanged event to PlumbVars that can be subscribed to similarly to Mirror's native SyncVar hooks attribute.
+
 ## 0.3.0
  - Updated project to generate xml documentation file.
  - Updated AutoPlugin version in project.
